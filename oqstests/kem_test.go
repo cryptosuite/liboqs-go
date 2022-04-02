@@ -3,13 +3,14 @@ package oqstests
 
 import (
 	"bytes"
-	"github.com/open-quantum-safe/liboqs-go/oqs/rand"
+	"fmt"
+	"github.com/cryptosuite/liboqs-go/oqs/rand"
 	"log"
 	"runtime"
 	"sync"
 	"testing"
 
-	"github.com/open-quantum-safe/liboqs-go/oqs"
+	"github.com/cryptosuite/liboqs-go/oqs"
 )
 
 // disabledKEMPatterns lists KEMs for which unit testing is disabled
@@ -23,6 +24,31 @@ var wgKEMCorrectness sync.WaitGroup
 
 // wgKEMWrongCiphertext groups goroutines and blocks the caller until all goroutines finish.
 var wgKEMWrongCiphertext sync.WaitGroup
+
+func TestKEMRecoveryCorrectness(t *testing.T) {
+	kemName := "Kyber768"
+	log.Println("Correctness - ", kemName) // thread-safe
+	var client, server oqs.KeyEncapsulation
+	defer client.Clean()
+	defer server.Clean()
+	// ignore potential errors everywhere
+	_ = client.Init(kemName, nil)
+	_ = server.Init(kemName, nil)
+	seed := make([]byte, 32)
+	fmt.Println(seed)
+	clientPublicKey, _ := client.GenerateKeyPairWithRecovery(seed, false)
+	fmt.Println(seed)
+	ciphertext, sharedSecretServer, _ := server.EncapSecret(clientPublicKey)
+	// clean
+	client.Clean()
+	_ = client.Init(kemName, nil)
+	_, _ = client.GenerateKeyPairWithRecovery(seed, true)
+	sharedSecretClient, _ := client.DecapSecret(ciphertext)
+	if !bytes.Equal(sharedSecretClient, sharedSecretServer) {
+		// t.Errorf is thread-safe
+		t.Errorf(kemName + ": shared secrets do not coincide")
+	}
+}
 
 // testKEMCorrectness tests the correctness of a specific KEM.
 func testKEMCorrectness(kemName string, threading bool, t *testing.T) {

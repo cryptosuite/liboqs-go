@@ -175,6 +175,31 @@ func (kem *KeyEncapsulation) GenerateKeyPair() ([]byte, error) {
 	return publicKey, nil
 }
 
+// GenerateKeyPairWithRecovery generates a pair of secret key/public key and returns the
+// public key. The secret key is stored inside the kem receiver. The secret key
+// is not directly accessible, unless one exports it with
+// KeyEncapsulation.ExportSecretKey method.
+// To support key recovery functions that applications required,
+// use the seed and recovery flag as input.
+// If the recovery flag is true, then the seed would be used to generate the key pair,
+// otherwise the seed would be filled.
+// NOTE: The seed length is 32, and in this release ONLY "Kyber768" support recovery function.
+func (kem *KeyEncapsulation) GenerateKeyPairWithRecovery(seed []byte, recovery bool) ([]byte, error) {
+	publicKey := make([]byte, kem.algDetails.LengthPublicKey)
+	kem.secretKey = make([]byte, kem.algDetails.LengthSecretKey)
+
+	rv := C.OQS_KEM_keypair_with_recovery(kem.kem,
+		(*C.uint8_t)(unsafe.Pointer(&seed[0])),
+		*(*C.bool)(unsafe.Pointer(&recovery)),
+		(*C.uint8_t)(unsafe.Pointer(&publicKey[0])),
+		(*C.uint8_t)(unsafe.Pointer(&kem.secretKey[0])))
+	if rv != C.OQS_SUCCESS {
+		return nil, errors.New("can not generate keypair")
+	}
+
+	return publicKey, nil
+}
+
 // ExportSecretKey exports the corresponding secret key from the kem receiver.
 func (kem *KeyEncapsulation) ExportSecretKey() []byte {
 	return kem.secretKey

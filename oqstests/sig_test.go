@@ -1,13 +1,13 @@
 package oqstests
 
 import (
-	"github.com/open-quantum-safe/liboqs-go/oqs/rand"
+	"github.com/cryptosuite/liboqs-go/oqs/rand"
 	"log"
 	"runtime"
 	"sync"
 	"testing"
 
-	"github.com/open-quantum-safe/liboqs-go/oqs"
+	"github.com/cryptosuite/liboqs-go/oqs"
 )
 
 // disabledSigPatterns lists sigs for which unit testing is disabled
